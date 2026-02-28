@@ -1,0 +1,68 @@
+name: Manual Publish
+run-name: Deploy ${{ github.event.inputs.version }} to ${{ github.event.inputs.target }} by @${{ github.actor }}
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "选择发版目标"
+        required: true
+        default: "frontend"
+        type: choice
+        options:
+          - frontend
+      version:
+        description: "版本号 (如 v1.0.0)"
+        required: true
+
+jobs:
+  # --- 前端构建任务 ---
+  build-frontend:
+    if: ${{ github.event.inputs.target == 'frontend' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 打包
+        run: |
+          npm install
+          npm run build
+          tar -czf release.tar.gz .next public package.json next.config.ts postcss.config.mjs tailwind.config.ts
+
+      - name: 发送到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist.tar.gz"
+          target: "/opt/pic/frontend"
+
+      - name: 远程部署与 PM2 重启
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/pic/frontend
+            
+            # 备份版本
+            mkdir -p backups
+            cp release.tar.gz backups/frontend-${{ github.event.inputs.version }}.tar.gz
+            
+            # 解压新代码
+            tar -xzf release.tar.gz
+            
+            # 安装生产环境依赖 (不安装 devDependencies)
+            npm install --production
+            
+            # 使用 PM2 启动或重启项目
+            # --name "pic-app" 是给你的进程起个名字
+            pm2 restart pic-app || pm2 start npm --name "pic-app" -- start
+            
+            rm release.tar.gz
