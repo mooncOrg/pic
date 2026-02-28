@@ -31,7 +31,7 @@ jobs:
       - name: 打包 & 推送后端镜像
         uses: docker/build-push-action@v5
         with:
-          context: ./backend # 这里的路径必须对应你的子目录
+          context: . # 这里的路径必须对应你的子目录
           push: true
           tags: |
             ghcr.io/dancingcodes/pic-backend:${{ github.event.inputs.version }}
