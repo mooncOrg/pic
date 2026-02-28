@@ -12,7 +12,7 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-
+ENV PORT=10003
 
 # 复制必要文件
 COPY --from=builder /app/public ./public
