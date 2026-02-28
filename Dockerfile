@@ -11,6 +11,9 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# 1. 先创建目录，确保它存在，防止public目录为空导致打包后没有public
+RUN mkdir -p public .next/static
+
 # 复制必要文件
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
