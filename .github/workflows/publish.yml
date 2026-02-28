@@ -19,9 +19,6 @@ jobs:
   build-backend:
     if: ${{ github.event.inputs.target == 'backend'}}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
       - name: 登录 GHCR
@@ -48,6 +45,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/pic
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker compose pull backend
             docker compose up -d backend

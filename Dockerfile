@@ -4,8 +4,6 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-# 先创建目录，确保它存在，防止public目录为空导致打包后没有public导致报错
-RUN mkdir -p public
 RUN npm run build
 
 # 阶段 2: 运行
