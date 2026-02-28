@@ -6,63 +6,45 @@ on:
       target:
         description: "选择发版目标"
         required: true
-        default: "frontend"
+        default: "backend"
         type: choice
         options:
-          - frontend
+          - backend
       version:
         description: "版本号 (如 v1.0.0)"
         required: true
 
 jobs:
-  # --- 前端构建任务 ---
-  build-frontend:
-    if: ${{ github.event.inputs.target == 'frontend' }}
+  # --- 后端构建任务 ---
+  build-backend:
+    if: ${{ github.event.inputs.target == 'backend'}}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 安装Node
-        uses: actions/setup-node@v4
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: 22
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 打包
-        run: |
-          npm install
-          npm run build
-          tar -czf release.tar.gz .next public package.json next.config.ts postcss.config.mjs tailwind.config.ts
-
-      - name: 发送到服务器
-        uses: appleboy/scp-action@v0.1.7
+      - name: 打包 & 推送后端镜像
+        uses: docker/build-push-action@v5
         with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist.tar.gz"
-          target: "/opt/pic/frontend"
+          context: ./backend # 这里的路径必须对应你的子目录
+          push: true
+          tags: |
+            ghcr.io/dancingcodes/pic-backend:${{ github.event.inputs.version }}
+            ghcr.io/dancingcodes/pic-backend:latest
 
-      - name: 远程部署与 PM2 重启
+      - name: 远程部署
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/pic/frontend
-            
-            # 备份版本
-            mkdir -p backups
-            cp release.tar.gz backups/frontend-${{ github.event.inputs.version }}.tar.gz
-            
-            # 解压新代码
-            tar -xzf release.tar.gz
-            
-            # 安装生产环境依赖 (不安装 devDependencies)
-            npm install --production
-            
-            # 使用 PM2 启动或重启项目
-            # --name "pic-app" 是给你的进程起个名字
-            pm2 restart pic-app || pm2 start npm --name "pic-app" -- start
-            
-            rm release.tar.gz
+            cd /opt/pic
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker compose pull backend
+            docker compose up -d backend
