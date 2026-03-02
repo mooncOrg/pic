@@ -10,15 +10,13 @@ export async function GET(request: Request) {
 
         const offset = (page - 1) * pageSize;
 
-        // 在 SQL 层面直接进行 type 过滤和分页
         const [rows] = await db.query(
-            "SELECT * FROM medias WHERE type = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM medias WHERE type = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT ? OFFSET ?",
             [type, pageSize, offset]
         );
 
-        // 获取该类型的总数
         const [totalRows]: any = await db.query(
-            "SELECT COUNT(*) as count FROM medias WHERE type = ?",
+            "SELECT COUNT(*) as count FROM medias WHERE type = ? AND is_deleted = 0",
             [type]
         );
         const total = totalRows[0].count;
@@ -39,11 +37,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const { url, type } = await request.json();
+        const { url, type, poster } = await request.json();
 
         const [result] = await db.execute(
-            "INSERT INTO medias (url, type) VALUES (?, ?)",
-            [url, type]
+            "INSERT INTO medias (url, type, poster, is_deleted) VALUES (?, ?, ?, 0)",
+            [url, type, poster]
         );
 
         const insertId = (result as any).insertId;

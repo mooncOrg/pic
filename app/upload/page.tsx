@@ -1,83 +1,137 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function UploadPage() {
     const [url, setUrl] = useState("");
+    const [poster, setPoster] = useState("");
     const [type, setType] = useState<"image" | "video">("image");
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.BaseSyntheticEvent) => {
         e.preventDefault();
-        if (!url) return alert("请输入 URL");
+        if (!url) return alert("请输入资源 URL");
+        if (type === "video" && !poster) return alert("视频必须提供封面图 URL");
 
         setLoading(true);
         try {
             const res = await fetch("/api/medias", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url, type }),
+                body: JSON.stringify({
+                    url,
+                    type,
+                    poster: type === "video" ? poster : null
+                }),
             });
 
             if (res.ok) {
-                alert("保存成功！");
-                router.push("/"); // 成功后跳回首页看结果
+                setUrl("");
+                setPoster("");
             } else {
-                alert("保存失败，请检查数据库连接");
+                alert("保存失败");
             }
         } catch (err) {
             console.error(err);
+            alert("网络错误");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-zinc-100">
-                <h1 className="text-2xl font-bold text-zinc-800 mb-6">新增内容</h1>
+        <div className="h-screen px-4 box-border bg-white flex flex-col overflow-hidden relative">
+            <div className="flex justify-between items-center py-2 box-border shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="text-xl font-bold tracking-tighter italic text-black uppercase">Upload</div>
+                    <a
+                        href="https://filehub.moonc.love"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-50 transition-colors uppercase"
+                    >
+                        FileHub ↗
+                    </a>
+                </div>
+                <Link href="/" className="text-gray-400 text-sm">back</Link>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-500 mb-2">资源 URL</label>
-                        <input
-                            type="text"
-                            className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                            placeholder="请输入网络地址"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                        />
-                    </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar py-6 max-w-lg mx-auto w-full">
+                <form onSubmit={handleSubmit} className="space-y-8 pb-10">
 
-                    {/* 类型选择 */}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-500 mb-2">资源类型</label>
-                        <div className="flex gap-4">
-                            {["image", "video"].map((t) => (
+                    <div className="space-y-6">
+                        <div className="flex gap-2">
+                            {[
+                                { val: "image", label: "图片" },
+                                { val: "video", label: "视频" }
+                            ].map((t) => (
                                 <button
-                                    key={t}
+                                    key={t.val}
                                     type="button"
-                                    onClick={() => setType(t as any)}
-                                    className={`flex-1 py-2 rounded-lg border transition-all ${type === t
-                                        ? "bg-zinc-800 text-white border-zinc-800"
-                                        : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"
+                                    onClick={() => setType(t.val as any)}
+                                    className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${type === t.val
+                                        ? "bg-black text-white shadow-lg"
+                                        : "bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100"
                                         }`}
                                 >
-                                    {t === "image" ? "图片" : "视频"}
+                                    {t.label}
                                 </button>
                             ))}
                         </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-1 mb-2 block">资源地址</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full px-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-1 focus:ring-black transition-all text-sm"
+                                    placeholder="请输入媒体文件的网络 URL..."
+                                    value={url}
+                                    onChange={(e) => setUrl(e.target.value)}
+                                />
+                            </div>
+
+                            {type === "video" && (
+                                <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-1 mb-2 block">封面地址</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-4 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-1 focus:ring-black transition-all text-sm"
+                                        placeholder="请输入视频封面图片的 URL..."
+                                        value={poster}
+                                        onChange={(e) => setPoster(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* 提交按钮 */}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-100 active:scale-95 transition-all disabled:opacity-50"
+                        className="w-full bg-black text-white font-bold py-4 rounded-2xl shadow-xl active:scale-[0.98] transition-all disabled:opacity-30 uppercase text-xs tracking-[0.3em]"
                     >
-                        {loading ? "保存中..." : "确定发布"}
+                        {loading ? "同步中..." : "确认发布"}
                     </button>
+
+                    <div className="pt-4">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] ml-1 mb-3 block">实时预览</label>
+                        <div className="relative overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50 aspect-video flex items-center justify-center">
+                            {(type === 'image' ? url : poster) ? (
+                                <img
+                                    src={type === 'image' ? url : poster}
+                                    className="w-full h-full object-cover animate-in fade-in duration-500"
+                                    alt="预览"
+                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                />
+                            ) : (
+                                <div className="text-zinc-300 text-[10px] font-bold uppercase tracking-[0.2em] italic">
+                                    暂无预览内容
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
