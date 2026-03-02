@@ -28,6 +28,7 @@ export default function UploadPage() {
             if (res.ok) {
                 setUrl("");
                 setPoster("");
+                alert("保存成功");
             } else {
                 alert("保存失败");
             }
