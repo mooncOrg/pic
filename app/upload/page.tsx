@@ -47,8 +47,7 @@ export default function UploadPage() {
                     <a
                         href="https://filehub.moonc.love"
                         target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-bold text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded hover:bg-zinc-50 transition-colors uppercase"
+                        className="bg-zinc-100 text-zinc-500 text-[10px] font-bold px-2 py-1 rounded-md active:bg-zinc-200 transition-colors uppercase tracking-tight"
                     >
                         FileHub ↗
                     </a>
